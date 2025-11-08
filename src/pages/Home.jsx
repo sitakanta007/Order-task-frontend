@@ -15,24 +15,13 @@ export default function Home() {
     });
   }, []);
 
-  const handleSort = (type) => {
-    let sortedList = [...products];
-
-    if (type === "price_low") sortedList.sort((a, b) => a.price - b.price);
-    if (type === "price_high") sortedList.sort((a, b) => b.price - a.price);
-    if (type === "latest") sortedList = [...products];
-
-    setSorted(sortedList);
-  };
-
   return (
     <>
       <Navbar />
 
-      <div className="flex min-h-screen">
-        <Filters onSortChange={handleSort} />
-
-        <div className="flex-1 bg-darkBg">
+      <div className="flex gap-6 mt-6 px-6">
+        <Filters products={products} />
+        <div className="flex-1">
           <ProductGrid products={sorted} />
         </div>
       </div>

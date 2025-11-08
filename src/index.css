@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-darkBg text-darkText;
+  @apply text-lightPrimary dark:text-darkPrimary bg-lightBg dark:bg-darkBg transition-colors;
 }
 
 * {

@@ -3,21 +3,29 @@ import { Link } from "react-router-dom";
 
 export default function Navbar() {
   return (
-    <div className="w-full border-b border-darkBorder bg-darkCard p-4 flex items-center justify-between">
-      <Link to="/" className="text-xl font-semibold">
-        E-Store
-      </Link>
+    <div
+      className="
+        sticky top-0 z-50
+        backdrop-blur-md bg-lightCard/85 dark:bg-darkBg2/80
+        border-b border-lightBorder dark:border-darkBorder
+        shadow-[0_2px_6px_rgba(15,23,42,0.07)]
+        px-6
+      "
+    >
+      <div className="h-16 flex items-center justify-between">
+        <Link to="/" className="text-xl font-semibold">
+          E-Store
+        </Link>
 
-      <div className="flex items-center gap-6">
-        <button className="px-4 py-2 bg-accent text-white rounded-md hover:bg-green-700">
-          Login
-        </button>
-
-        <button className="px-4 py-2 bg-darkBorder rounded-md">
-          Cart (0)
-        </button>
-
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 shadow-subtle">
+            Login
+          </button>
+          <button className="px-4 py-2 rounded-lg border border-lightBorder dark:border-darkBorder bg-lightCard dark:bg-darkCard">
+            Cart (0)
+          </button>
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );
