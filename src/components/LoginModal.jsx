@@ -1,5 +1,23 @@
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "@redux/slices/authSlice";
+
 export default function LoginModal({ open, onClose }) {
   if (!open) return null;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((s) => s.auth);
+ 
+  const handleLogin = async () => {
+    const result = await dispatch(loginUser({ email, password }));
+
+    if (result.meta.requestStatus === "fulfilled") {
+      onClose(); // close modal after success
+    }
+  };
 
   return (
     <div
@@ -40,6 +58,8 @@ export default function LoginModal({ open, onClose }) {
             </label>
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="
                 w-full px-3 py-2 rounded-lg
                 bg-lightBg dark:bg-darkBg2
@@ -57,6 +77,8 @@ export default function LoginModal({ open, onClose }) {
             </label>
             <input
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="
                 w-full px-3 py-2 rounded-lg
                 bg-lightBg dark:bg-darkBg2
@@ -68,8 +90,12 @@ export default function LoginModal({ open, onClose }) {
             />
           </div>
 
+          {error && (
+            <p className="text-red-500 text-sm mt-2">{error}</p>
+          )}
           {/* Submit */}
           <button
+            onClick={handleLogin}
             className="
               w-full py-2.5 mt-2 rounded-lg
               bg-brand-500 hover:bg-brand-600 
@@ -77,7 +103,7 @@ export default function LoginModal({ open, onClose }) {
               text-white font-semibold transition
             "
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </div>
       </div>
