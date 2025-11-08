@@ -36,7 +36,7 @@ module.exports = {
           800: "#24468f",
           900: "#1f3b76",
         },
-        accent: "#238636"
+        accent: "#4f83f3"
       },
       boxShadow: {
         subtle: "0 2px 8px rgba(15, 23, 42, 0.06)",
