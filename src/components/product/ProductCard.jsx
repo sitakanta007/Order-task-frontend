@@ -1,9 +1,13 @@
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
+import { useNavigate } from "react-router-dom";
 
 export default function ProductCard({ product }) {
+  const navigate = useNavigate();
   return (
-    <div className="
+    <div
+    onClick={() => navigate(`/product/${product.id}`)} 
+    className="
       rounded-xl overflow-hidden
       bg-lightCard dark:bg-darkCard
       border border-lightBorder/70 dark:border-darkBorder/60

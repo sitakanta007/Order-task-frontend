@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProducts } from "@redux/slices/productSlice";
-import Navbar from "@utils/Navbar";
 import Filters from "@utils/Filters";
 import ProductGrid from "@components/product/ProductGrid";
+import LoadingScreen from "@utils/LoadingScreen";
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -13,16 +13,16 @@ export default function Home() {
     dispatch(getAllProducts());
   }, []);
 
-  return (
-    <>
-      <Navbar />
+  if (loading) {
+    return <LoadingScreen message="Loading products…" />;
+  }
 
+  return (
       <div className="flex gap-6 mt-6 px-6">
         <Filters />
         <div className="flex-1">
-          {loading ? <p>Loading...</p> : <ProductGrid products={filteredProducts} />}
+          <ProductGrid products={filteredProducts} />
         </div>
       </div>
-    </>
   );
 }
