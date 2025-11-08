@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
-import productApi from "@api/productApi";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllProducts } from "@redux/slices/productSlice";
 import Navbar from "@utils/Navbar";
 import Filters from "@utils/Filters";
 import ProductGrid from "@components/product/ProductGrid";
 
 export default function Home() {
-  const [products, setProducts] = useState([]);
-  const [sorted, setSorted] = useState([]);
+  const dispatch = useDispatch();
+  const { filteredProducts, loading } = useSelector((s) => s.products);
 
   useEffect(() => {
-    productApi.getAll().then((res) => {
-      setProducts(res.data.data);
-      setSorted(res.data.data);
-    });
+    dispatch(getAllProducts());
   }, []);
 
   return (
@@ -20,9 +18,9 @@ export default function Home() {
       <Navbar />
 
       <div className="flex gap-6 mt-6 px-6">
-        <Filters products={products} />
+        <Filters />
         <div className="flex-1">
-          <ProductGrid products={sorted} />
+          {loading ? <p>Loading...</p> : <ProductGrid products={filteredProducts} />}
         </div>
       </div>
     </>

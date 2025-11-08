@@ -1,21 +1,9 @@
-export default function Filters({ products }) {
+import { useDispatch, useSelector } from "react-redux";
+import { setSearch, setSort, clearFilters } from "@redux/slices/productSlice";
 
-  const onSortChange = (type) => {
-    let sortedList = [...products];
-
-    if (type === "price_low") sortedList.sort((a, b) => a.price - b.price);
-    if (type === "price_high") sortedList.sort((a, b) => b.price - a.price);
-    if (type === "latest") sortedList = [...products];
-
-    setSorted(sortedList);
-  };
-
-  const onSearch = (text) => {
-    const filtered = products.filter(p =>
-        p.title.toLowerCase().includes(text.toLowerCase())
-    );
-    setSorted(filtered);
-  };
+export default function Filters() {
+  const dispatch = useDispatch();
+  const { search, sort } = useSelector((s) => s.products);
 
   return (
     <aside
@@ -28,7 +16,7 @@ export default function Filters({ products }) {
       "
     >
       {/* Heading with blue underline */}
-      <h2 className="text-xl font-semibold text-lightPrimary dark:text-darkPrimary relative pb-3">
+      <h2 className="text-md font-semibold text-lightPrimary dark:text-darkPrimary relative pb-3">
         Filters
         <span className="absolute left-0 -bottom-0.5 h-[3px] w-16 rounded-full bg-brand-500"></span>
       </h2>
@@ -45,7 +33,8 @@ export default function Filters({ products }) {
             Sort By
           </label>
           <select
-            onChange={(e) => onSortChange(e.target.value)}
+            value={sort}
+            onChange={(e) => dispatch(setSort(e.target.value))}
             className="
               w-full px-3 py-2 rounded-lg
               bg-lightBg dark:bg-darkBg2
@@ -73,7 +62,8 @@ export default function Filters({ products }) {
           <input
             type="text"
             placeholder="Search by name…"
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={(e) => dispatch(setSearch(e.target.value))}
+            value={search}
             className="
               w-full px-3 py-2 rounded-lg
               bg-lightBg dark:bg-darkBg2
@@ -83,6 +73,23 @@ export default function Filters({ products }) {
               placeholder:text-slate-400 dark:placeholder:text-slate-500
             "
           />
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => dispatch(clearFilters())}
+            className="
+              px-4 py-2 mt-2
+              text-sm font-medium
+              rounded-lg
+              bg-brand-500 text-white
+              hover:bg-brand-600
+              dark:bg-brand-600 dark:hover:bg-brand-700
+              shadow-subtle
+              transition
+            "
+          >
+            Clear Filters
+          </button>
         </div>
       </div>
     </aside>
