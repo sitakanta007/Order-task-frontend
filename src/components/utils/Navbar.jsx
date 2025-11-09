@@ -3,12 +3,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { logout } from "@redux/slices/authSlice";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import LoginModal from "@components/LoginModal";
 
 export default function Navbar() {
   const [openLogin, setOpenLogin] = useState(false);
   const { user } = useSelector((s) => s.auth);
+  const count = useSelector((s) => s.cart?.items?.length ?? 0);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   return (
     <>
     <div
@@ -47,8 +50,8 @@ export default function Navbar() {
               Login
             </button>
           )}
-          <button className="px-4 py-2 rounded-lg border border-lightBorder dark:border-darkBorder bg-lightCard dark:bg-darkCard">
-            Cart (0)
+          <button onClick={() => navigate("/cart")} className="px-4 py-2 rounded-lg border border-lightBorder dark:border-darkBorder bg-lightCard dark:bg-darkCard">
+            Cart ({count})
           </button>
           <ThemeToggle />
         </div>
