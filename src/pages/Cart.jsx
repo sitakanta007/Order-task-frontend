@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState , useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   incrementQty,
@@ -21,9 +21,11 @@ export default function Cart() {
   const count = useSelector(selectCartCount);
   const auth = useSelector((s) => s.auth);
 
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+
   useEffect(() => {
     if (!auth?.user?.id) navigate("/login");
-  }, [auth?.user]);
+  }, [auth?.user, navigate]);
 
   const handleUpdateCart = async () => {
     await dispatch(syncCart());
@@ -37,7 +39,6 @@ export default function Cart() {
   const handleRemove = async (product_id) => {
     dispatch(removeItem(product_id));
 
-    // after redux update, check if cart becomes empty
     setTimeout(async () => {
       const updated = JSON.parse(JSON.stringify(items));
       const remaining = updated.filter((i) => i.product_id !== product_id);
@@ -47,11 +48,33 @@ export default function Cart() {
     }, 0);
   };
 
-  // decrement should NOT remove item, must stop at quantity = 1, only remove button should remove item
   const handleDecrement = (product_id, currentQty) => {
-    if (currentQty <= 1) return; // stop at 1
+    if (currentQty <= 1) return;
     dispatch(decrementQty(product_id));
   };
+
+  // ===== Correct discount calculation =====
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    const percent = Number(appliedCoupon.discount_percent || 0);
+    const amount = (Number(subtotal || 0) * percent) / 100;
+    return Number(amount.toFixed(2));
+  }, [subtotal, appliedCoupon]);
+
+  // ===== Taxable amount after discount =====
+  const taxableAmount = useMemo(() => {
+    return Number((Number(subtotal || 0) - discountAmount).toFixed(2));
+  }, [subtotal, discountAmount]);
+
+  // ===== GST is now based on taxable amount =====
+  const gstAmount = useMemo(() => {
+    return Number((taxableAmount * 0.05).toFixed(2));
+  }, [taxableAmount]);
+
+  // ===== Final Total =====
+  const finalTotal = useMemo(() => {
+    return Number((taxableAmount + gstAmount).toFixed(2));
+  }, [taxableAmount, gstAmount]);
 
   if (!items || items.length === 0) {
     return (
@@ -134,20 +157,71 @@ export default function Cart() {
           })}
 
         </div>
-        {/* Coupons Section BELOW the last product item, ABOVE the subtotal box */}
+
         <div className="mt-10">
-          <Coupons />
+          <Coupons onApply={(couponObj) => setAppliedCoupon(couponObj)} />
         </div>
 
         <div className="mt-10 bg-white dark:bg-darkCard border border-lightBorder dark:border-darkBorder p-6 rounded-lg shadow-md">
 
+          {/* === Subtotal === */}
           <div className="flex justify-between mb-4">
             <p className="text-lg text-lightPrimary dark:text-darkPrimary">
               Subtotal
             </p>
             <p className="text-lg font-semibold text-lightPrimary dark:text-darkPrimary">
-              ₹{subtotal.toFixed(2)}
+              ₹{Number(subtotal || 0).toFixed(2)}
             </p>
+          </div>
+
+          {/* === Coupon applied (now directly after subtotal) === */}
+          {appliedCoupon && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "10px",
+                fontSize: "14px",
+                color: "#007aff"
+              }}
+            >
+              <span>
+                Coupon applied ({appliedCoupon.code}) – {appliedCoupon.discount_percent}% of subtotal
+              </span>
+              <span>-₹{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* === GST === */}
+          <div className="flex justify-between mb-4">
+            <p className="text-lg text-lightPrimary dark:text-darkPrimary">
+              GST (5%)
+            </p>
+            <p className="text-lg font-semibold text-lightPrimary dark:text-darkPrimary">
+              ₹{gstAmount.toFixed(2)}
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div
+            style={{
+              height: "1px",
+              background: "#ddd",
+              margin: "10px 0"
+            }}
+          />
+
+          {/* === Final Total === */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "18px",
+              fontWeight: "600"
+            }}
+          >
+            <span>Final Total</span>
+            <span>₹{finalTotal.toFixed(2)}</span>
           </div>
 
           <div className="flex justify-between items-center mt-6 gap-4">

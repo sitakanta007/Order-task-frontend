@@ -1,102 +1,170 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import axiosClient from "@api/axiosClient";
+import cartApi from "@api/cartApi";
 
-export default function Coupons() {
-  const auth = useSelector((s) => s.auth);
-
+export default function Coupons({ onApply = () => {} }) {
+  const { user, token } = useSelector((s) => s.auth || {});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [coupons, setCoupons] = useState([]);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [nextOrderNumber, setNextOrderNumber] = useState(null);
+  const [appliedId, setAppliedId] = useState(null);
 
-  const handleFetchCoupons = async () => {
-    if (!auth?.user?.id || !auth?.token) {
-      setErrorMsg("Please login first.");
-      return;
-    }
+  // Track whether the user clicked "Check Available Coupons"
+  const [hasFetched, setHasFetched] = useState(false);
 
+  const userId = user?.id || user?.user_id || "";
+
+  const fetchCoupons = async () => {
+    if (!userId) return;
     try {
       setLoading(true);
-      setErrorMsg("");
+      setError("");
+      setHasFetched(true);
 
-      const res = await axiosClient.get(`/coupons/${auth.user.id}`, {
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-        },
-      });
+      const res = await cartApi.getCoupons(userId, token);
+      const data = res?.data || {};
 
-      setCoupons(res.data?.coupons || []);
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Failed to fetch coupons");
+      setCoupons(Array.isArray(data.coupons) ? data.coupons : []);
+      setNextOrderNumber(
+        typeof data.nextOrderNumber === "number" ? data.nextOrderNumber : null
+      );
+    } catch (e) {
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to load coupons"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="bg-white dark:bg-darkCard border border-lightBorder dark:border-darkBorder p-6 rounded-lg shadow-sm">
+  const applicableIds = useMemo(() => {
+    if (nextOrderNumber == null) return new Set();
+    const ids = new Set();
+    for (const c of coupons) {
+      if (Number(c.nth_value) === Number(nextOrderNumber)) {
+        ids.add(c.id || c.code);
+      }
+    }
+    return ids;
+  }, [coupons, nextOrderNumber]);
 
-      <div className="flex items-center justify-between">
+  const handleApply = (c) => {
+    setAppliedId(c.id || c.code);
+    onApply(c);
+  };
+
+  return (
+    <section
+      className="
+        mt-6 p-6 rounded-2xl
+        bg-lightBg dark:bg-darkBg2
+        border border-lightBorder dark:border-darkBorder
+        shadow-sm
+      "
+    >
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-lightPrimary dark:text-darkPrimary">
           Coupons
         </h2>
 
         <button
-          onClick={handleFetchCoupons}
-          className="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition"
+          onClick={fetchCoupons}
+          disabled={loading || !userId}
+          className="
+            px-4 py-2 rounded-lg
+            bg-brand-600 hover:bg-brand-700
+            disabled:opacity-60 disabled:cursor-not-allowed
+            text-white font-medium transition
+          "
         >
-          Check Available Coupons
+          {loading ? "Checking…" : "Check Available Coupons"}
         </button>
       </div>
 
-      {errorMsg && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-          {errorMsg}
+      {error ? (
+        <div className="p-3 rounded-lg bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200">
+          {error}
         </div>
-      )}
+      ) : null}
 
-      {loading && (
-        <div className="mt-4 text-lightPrimary dark:text-darkPrimary text-sm">
-          Loading coupons...
-        </div>
-      )}
+      {hasFetched && !loading && coupons.length === 0 ? (
+        <p className="text-lightSecondary dark:text-darkSecondary">
+          No coupons available right now.
+        </p>
+      ) : null}
 
-      {!loading && coupons.length > 0 && (
-        <div className="mt-5 space-y-4">
-          {coupons.map((c) => (
+      <div className="space-y-3">
+        {coupons.map((c) => {
+          const id = c.id || c.code;
+          const pct = Number(c.discount_percent || 0);
+          const isApplicable = applicableIds.has(id);
+          const isApplied = appliedId === id;
+
+          return (
             <div
-              key={c.id}
-              className="p-4 rounded-lg bg-lightBg dark:bg-darkBg2 border border-lightBorder dark:border-darkBorder"
+              key={id}
+              className="
+                w-full p-4 rounded-xl
+                bg-white dark:bg-darkCard
+                border border-lightBorder dark:border-darkBorder
+                flex items-center justify-between gap-4
+              "
             >
-              <p className="text-lg font-bold text-lightPrimary dark:text-darkPrimary">
-                {c.code}
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-semibold text-lightPrimary dark:text-darkPrimary">
+                    {c.code}
+                  </span>
+                  <span className="text-sm text-lightSecondary dark:text-darkSecondary">
+                    {pct}% of subtotal
+                  </span>
+                </div>
+              </div>
 
-              <p className="text-sm text-lightSecondary dark:text-darkSecondary mt-1">
-                Type: {c.type}
-              </p>
-
-              {c.discount_percent && (
-                <p className="text-sm text-lightSecondary dark:text-darkSecondary">
-                  Discount: {c.discount_percent} percent
-                </p>
-              )}
-
-              {c.flat_amount && (
-                <p className="text-sm text-lightSecondary dark:text-darkSecondary">
-                  Flat Amount: ₹{c.flat_amount}
-                </p>
-              )}
+              <div className="flex items-center gap-3">
+                {isApplied ? (
+                  <span
+                    className="
+                      px-3 py-1 rounded-full
+                      bg-emerald-100 text-emerald-700
+                      dark:bg-emerald-900 dark:text-emerald-200
+                      text-sm font-medium
+                    "
+                  >
+                    Coupon Applied
+                  </span>
+                ) : isApplicable ? (
+                  <button
+                    onClick={() => handleApply(c)}
+                    className="
+                      px-4 py-2 rounded-lg
+                      bg-brand-600 hover:bg-brand-700
+                      text-white font-medium transition
+                    "
+                  >
+                    Apply
+                  </button>
+                ) : (
+                  <span
+                    className="
+                      px-3 py-1 rounded-full
+                      bg-lightBg dark:bg-darkBg
+                      border border-lightBorder dark:border-darkBorder
+                      text-lightPrimary dark:text-darkPrimary
+                      text-sm font-medium
+                    "
+                  >
+                    Applies to order #{c.nth_value}
+                  </span>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && coupons.length === 0 && !errorMsg && (
-        <div className="mt-4 text-lightSecondary dark:text-darkSecondary text-sm">
-          No coupons available.
-        </div>
-      )}
-    </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

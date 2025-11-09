@@ -1,24 +1,25 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import cartApi from "@api/cartApi";
+import cartApi, { getCart as apiGetCart, updateCart as apiUpdateCart } from "@api/cartApi";
 
 // Helpers
 const computeTotals = (items) => {
   const count = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
   const subtotal = items.reduce(
-    (sum, i) => sum + (i.price ? i.price * (i.quantity || 0) : 0),
+    (sum, i) => sum + (Number(i.price || 0) * (i.quantity || 0)),
     0
   );
   return { count, subtotal };
 };
 
-// GET CART on login / page load
+// GET cart from backend (after login / app start / refresh)
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (_, { getState, rejectWithValue }) => {
     try {
       const { auth } = getState();
-      if (!auth?.user?.id) return { items: [] };
-      const res = await cartApi.getCart(auth.user.id, auth.token);
+      const userId = auth?.user?.id;
+      if (!userId) return { items: [] };
+      const res = await apiGetCart(userId, auth.token);
       return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch cart");
@@ -26,7 +27,7 @@ export const fetchCart = createAsyncThunk(
   }
 );
 
-// SYNC entire cart (after addToCart, update button, checkout)
+// Sync current redux cart to backend (used by Add to Cart, Update Cart, Checkout)
 export const syncCart = createAsyncThunk(
   "cart/syncCart",
   async (_, { getState, rejectWithValue }) => {
@@ -39,18 +40,17 @@ export const syncCart = createAsyncThunk(
           quantity,
         })),
       };
-
-      const res = await cartApi.updateCart(payload, auth.token);
-
-      return res.data || payload;
+      const res = await apiUpdateCart(payload, auth.token);
+      // If backend only returns {message}, keep local items
+      return res.data?.items ? res.data : { items: cart.items };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Failed to sync cart");
+      return rejectWithValue(err.response?.data?.message || "Failed to update cart");
     }
   }
 );
 
 const initialState = {
-  items: [],
+  items: [],          // [{ product_id, quantity, title?, price?, image? }]
   count: 0,
   subtotal: 0,
   loading: false,
@@ -64,6 +64,7 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
+    // Add or increase quantity locally (no API call here)
     addOrUpdateItem: (state, { payload }) => {
       const qty = payload.quantity ?? 1;
       const idx = findIndex(state.items, payload.product_id);
@@ -76,8 +77,9 @@ const cartSlice = createSlice({
       state.count = t.count;
       state.subtotal = t.subtotal;
     },
+    // Increment / Decrement without hitting backend
     incrementQty: (state, { payload }) => {
-      const idx = findIndex(state.items, payload);
+      const idx = findIndex(state.items, payload); // payload = product_id
       if (idx !== -1) state.items[idx].quantity += 1;
       const t = computeTotals(state.items);
       state.count = t.count;
@@ -86,15 +88,15 @@ const cartSlice = createSlice({
     decrementQty: (state, { payload }) => {
       const idx = findIndex(state.items, payload);
       if (idx !== -1) {
-        state.items[idx].quantity = Math.max(0, state.items[idx].quantity - 1);
-        if (state.items[idx].quantity === 0) state.items.splice(idx, 1);
+        // Keep minimum 1 (do not remove automatically)
+        state.items[idx].quantity = Math.max(1, state.items[idx].quantity - 1);
       }
       const t = computeTotals(state.items);
       state.count = t.count;
       state.subtotal = t.subtotal;
     },
     removeItem: (state, { payload }) => {
-      const idx = findIndex(state.items, payload);
+      const idx = findIndex(state.items, payload); // payload = product_id
       if (idx !== -1) state.items.splice(idx, 1);
       const t = computeTotals(state.items);
       state.count = t.count;
@@ -114,6 +116,7 @@ const cartSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // fetchCart
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -127,9 +130,9 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = payload;
+        state.error = payload || "Failed to fetch cart";
       })
-
+      // syncCart
       .addCase(syncCart.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -145,7 +148,7 @@ const cartSlice = createSlice({
       })
       .addCase(syncCart.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = payload;
+        state.error = payload || "Failed to update cart";
       });
   },
 });

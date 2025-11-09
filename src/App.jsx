@@ -7,7 +7,7 @@ import Navbar from "@utils/Navbar.jsx";
 import NotFound from "@utils/NotFound";
 import ProductDetails from "@components/product/ProductDetails";
 import Cart from "pages/Cart.jsx";
-import { fetchCart } from "@redux/slices/cartSlice";
+import { fetchCart, clearCart } from "@redux/slices/cartSlice";
 
 export default function App() {
 
@@ -21,6 +21,8 @@ export default function App() {
   useEffect(() => {
     if (auth?.user?.id && auth?.token) {
       dispatch(fetchCart()); // userId & token auto-read inside thunk
+    } else {
+      dispatch(clearCart());
     }
   }, [auth?.user?.id, auth?.token]);
   return (
