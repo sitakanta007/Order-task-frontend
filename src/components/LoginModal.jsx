@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@redux/slices/authSlice";
 
@@ -16,6 +16,13 @@ export default function LoginModal({ open, onClose }) {
 
     if (result.meta.requestStatus === "fulfilled") {
       onClose(); // close modal after success
+    }
+  };
+
+  // on press of enter key - proceed to login
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleLogin();
     }
   };
 
@@ -60,6 +67,7 @@ export default function LoginModal({ open, onClose }) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="
                 w-full px-3 py-2 rounded-lg
                 bg-lightBg dark:bg-darkBg2
@@ -79,6 +87,7 @@ export default function LoginModal({ open, onClose }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="
                 w-full px-3 py-2 rounded-lg
                 bg-lightBg dark:bg-darkBg2

@@ -1,6 +1,7 @@
 import ThemeToggle from "./ThemeToggle";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "@redux/slices/authSlice";
+import { clearCart } from "@redux/slices/cartSlice";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,12 @@ export default function Navbar() {
   const count = useSelector((s) => s.cart?.items?.length ?? 0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(clearCart()); // clears everything: items, count, subtotal on logout
+  };
+
   return (
     <>
     <div
@@ -36,7 +43,7 @@ export default function Navbar() {
               </span>
 
               <button
-                onClick={() => dispatch(logout())}
+                onClick={handleLogout}
                 className="px-3 py-2 rounded-lg border border-lightBorder dark:border-darkBorder"
               >
                 Logout

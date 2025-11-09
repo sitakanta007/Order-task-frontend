@@ -10,6 +10,7 @@ import {
   selectCartCount
 } from "@redux/slices/cartSlice";
 import { useNavigate } from "react-router-dom";
+import Coupons from "@components/Coupons";
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -31,6 +32,25 @@ export default function Cart() {
   const handleCheckout = async () => {
     await dispatch(syncCart());
     navigate("/checkout");
+  };
+
+  const handleRemove = async (product_id) => {
+    dispatch(removeItem(product_id));
+
+    // after redux update, check if cart becomes empty
+    setTimeout(async () => {
+      const updated = JSON.parse(JSON.stringify(items));
+      const remaining = updated.filter((i) => i.product_id !== product_id);
+      if (remaining.length === 0) {
+        await dispatch(syncCart());
+      }
+    }, 0);
+  };
+
+  // decrement should NOT remove item, must stop at quantity = 1, only remove button should remove item
+  const handleDecrement = (product_id, currentQty) => {
+    if (currentQty <= 1) return; // stop at 1
+    dispatch(decrementQty(product_id));
   };
 
   if (!items || items.length === 0) {
@@ -80,13 +100,13 @@ export default function Cart() {
 
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => dispatch(decrementQty(item.product_id))}
+                      onClick={() => handleDecrement(item.product_id, item.quantity)}
                       className="w-8 h-8 flex items-center justify-center text-xl bg-lightBg dark:bg-darkBg2 border border-lightBorder dark:border-darkBorder rounded-lg hover:bg-lightCard dark:hover:bg-darkCard transition"
                     >
                       –
                     </button>
 
-                    <span classname="text-xl font-medium">
+                    <span className="text-xl font-medium">
                       {item.quantity}
                     </span>
 
@@ -103,7 +123,7 @@ export default function Cart() {
                   </p>
 
                   <button
-                    onClick={() => dispatch(removeItem(item.product_id))}
+                    onClick={() => handleRemove(item.product_id)}
                     className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
                   >
                     Remove
@@ -113,6 +133,10 @@ export default function Cart() {
             );
           })}
 
+        </div>
+        {/* Coupons Section BELOW the last product item, ABOVE the subtotal box */}
+        <div className="mt-10">
+          <Coupons />
         </div>
 
         <div className="mt-10 bg-white dark:bg-darkCard border border-lightBorder dark:border-darkBorder p-6 rounded-lg shadow-md">
