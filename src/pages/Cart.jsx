@@ -7,10 +7,12 @@ import {
   syncCart,
   selectCartItems,
   selectCartSubtotal,
-  selectCartCount
+  selectCartCount,
+  clearCart
 } from "@redux/slices/cartSlice";
 import { useNavigate } from "react-router-dom";
 import Coupons from "@components/Coupons";
+import cartApi from "@api/cartApi";
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -32,8 +34,40 @@ export default function Cart() {
   };
 
   const handleCheckout = async () => {
-    await dispatch(syncCart());
-    navigate("/checkout");
+    try {
+      await dispatch(syncCart());
+
+      const payload = {
+        user_id: auth?.user?.id,
+
+        items: items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          price: Number(i.price)
+        })),
+
+        subtotal: Number(subtotal || 0),
+        discount: Number(discountAmount || 0),
+        tax: Number(gstAmount || 0),
+        total_amount: Number(finalTotal || 0),
+
+        coupon: appliedCoupon?.code || null
+      };
+
+      const response = await cartApi.checkout(payload, auth.token);
+
+      if (!response?.data) {
+        alert("Checkout failed");
+        return;
+      }
+
+      dispatch(clearCart());
+      alert("Order placed successfully");
+      navigate("/orders");
+
+    } catch (err) {
+      alert("Checkout failed");
+    }
   };
 
   const handleRemove = async (product_id) => {
