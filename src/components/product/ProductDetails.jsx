@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addOrUpdateItem, syncCart } from "@redux/slices/cartSlice";
 import { getAllProducts } from "@redux/slices/productSlice";
-import LoadingScreen from "@utils/LoadingScreen";
+import LoadingOverlay from "@utils/LoadingOverlay";
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -17,6 +17,7 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [errorMsg, setErrorMsg] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [loadingSpinner, setLoadingSpinner] = useState(false);
 
   const product = allProducts.find((p) => p.id === id);
 
@@ -41,6 +42,7 @@ export default function ProductDetails() {
   };
 
   const handleAddToCart = async () => {
+    setLoadingSpinner(true);
     dispatch(
       addOrUpdateItem({
         product_id: product.id,
@@ -51,6 +53,7 @@ export default function ProductDetails() {
       })
     );
     await dispatch(syncCart());
+    setLoadingSpinner(false);
     navigate("/cart");
   };
 
@@ -75,7 +78,7 @@ export default function ProductDetails() {
   }, [loginError]);
 
   if (loading || allProducts.length === 0) {
-    return <LoadingScreen message="Loading product…" />;
+    return <LoadingOverlay text="Loading product…" />;
   }
 
   if (!product) {
@@ -84,6 +87,7 @@ export default function ProductDetails() {
 
   return (
     <div className="px-6">
+      {loadingSpinner && <LoadingOverlay text="Processing..." />}
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 bg-lightBg dark:bg-darkBg2 p-8 rounded-2xl shadow-xl">
 
         <div className="rounded-xl overflow-hidden bg-lightCard dark:bg-darkCard shadow-md">

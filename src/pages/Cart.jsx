@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import Coupons from "@components/Coupons";
 import Heading from "@utils/Heading";
 import Message from "@utils/Message";
+import LoadingOverlay from "@utils/LoadingOverlay";
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -25,18 +26,23 @@ export default function Cart() {
   const auth = useSelector((s) => s.auth);
 
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleUpdateCart = async () => {
     try {
+        setLoading(true);
         await dispatch(syncCart());
+        setLoading(false);
         alert("Cart updated successfully");
     } catch {
+        setLoading(false);
         alert("Cart update failed");
     }
   };
 
   const handleCheckout = async () => {
         try {
+            setLoading(true);
             await dispatch(
             checkoutCart({
                 auth,
@@ -49,10 +55,11 @@ export default function Cart() {
                 navigate
             })
             ).unwrap();
-
+            setLoading(false);
             alert("Order placed successfully");
             navigate("/orders");
         } catch (err) {
+            setLoading(false);
             alert("Checkout failed");
         }
   };
@@ -102,6 +109,7 @@ export default function Cart() {
 
   return (
     <div className="px-6">
+      {loading && <LoadingOverlay text="Processing..." />}
       <div className="max-w-6xl mx-auto bg-lightBg dark:bg-darkBg2 p-8 rounded-xl shadow-lg">
 
         <Heading headingText={`Your Cart (Items - ${items?.length || 0}, Quanties - ${count})`} />
@@ -251,7 +259,7 @@ export default function Cart() {
               onClick={handleCheckout}
               className="flex-1 py-3 text-lg font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition shadow"
             >
-              Checkout
+              Checkout & Place Order
             </button>
 
           </div>

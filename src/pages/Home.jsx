@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAllProducts } from "@redux/slices/productSlice";
 import Filters from "@utils/Filters";
 import ProductGrid from "@components/product/ProductGrid";
-import LoadingScreen from "@utils/LoadingScreen";
+import LoadingOverlay from "@utils/LoadingOverlay";
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -14,7 +14,7 @@ export default function Home() {
   }, []);
 
   if (loading) {
-    return <LoadingScreen message="Loading products…" />;
+    return <LoadingOverlay text="Loading products…" />;
   }
 
   return (
