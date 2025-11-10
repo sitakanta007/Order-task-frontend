@@ -48,6 +48,12 @@ export default function Navbar() {
               >
                 Logout
               </button>
+              <button
+                onClick={() => navigate("/orders")}
+                className="px-3 py-2 rounded-lg border border-lightBorder dark:border-darkBorder"
+              >
+                My Orders
+              </button>
             </div>
           ) : (
             <button
@@ -59,6 +65,11 @@ export default function Navbar() {
           )}
           <button onClick={() => navigate("/cart")} className="px-4 py-2 rounded-lg border border-lightBorder dark:border-darkBorder bg-lightCard dark:bg-darkCard">
             Cart ({count})
+          </button>
+          <button onClick={() => navigate("/")}
+            className="px-3 py-2 rounded-lg border border-lightBorder dark:border-darkBorder"
+          >
+            Browse Products
           </button>
           <ThemeToggle />
         </div>

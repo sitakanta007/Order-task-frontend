@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import cartApi, { getCart as apiGetCart, updateCart as apiUpdateCart } from "@api/cartApi";
+import { getCart, updateCart, checkout } from "@api/cartApi";
 
 // Helpers
 const computeTotals = (items) => {
@@ -19,7 +19,7 @@ export const fetchCart = createAsyncThunk(
       const { auth } = getState();
       const userId = auth?.user?.id;
       if (!userId) return { items: [] };
-      const res = await apiGetCart(userId, auth.token);
+      const res = await getCart(userId, auth.token);
       return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch cart");
@@ -40,11 +40,48 @@ export const syncCart = createAsyncThunk(
           quantity,
         })),
       };
-      const res = await apiUpdateCart(payload, auth.token);
+      const res = await updateCart(payload, auth.token);
       // If backend only returns {message}, keep local items
       return res.data?.items ? res.data : { items: cart.items };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Failed to update cart");
+    }
+  }
+);
+
+export const checkoutCart = createAsyncThunk(
+  "cart/checkoutCart",
+  async ({ auth, items, subtotal, discountAmount, gstAmount, finalTotal, appliedCoupon, navigate }, thunkAPI) => {
+    try {
+      // sync cart to backend
+      await thunkAPI.dispatch(syncCart());
+
+      const payload = {
+        user_id: auth?.user?.id,
+
+        items: items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          price: Number(i.price)
+        })),
+
+        subtotal: Number(subtotal || 0),
+        discount: Number(discountAmount || 0),
+        tax: Number(gstAmount || 0),
+        total_amount: Number(finalTotal || 0),
+
+        coupon: appliedCoupon?.code || null
+      };
+
+      const response = await checkout(payload, auth.token);
+
+      if (!response?.data) {
+        return thunkAPI.rejectWithValue("Checkout failed");
+      }
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error?.response?.data || "Checkout failed");
     }
   }
 );
@@ -149,6 +186,12 @@ const cartSlice = createSlice({
       .addCase(syncCart.rejected, (state, { payload }) => {
         state.loading = false;
         state.error = payload || "Failed to update cart";
+      })
+      .addCase(checkoutCart.fulfilled, (state, action) => {
+        state.items = [];
+      })
+      .addCase(checkoutCart.rejected, (state, action) => {
+
       });
   },
 });

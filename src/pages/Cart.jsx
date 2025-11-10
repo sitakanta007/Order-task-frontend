@@ -1,4 +1,4 @@
-import { useState , useEffect, useMemo } from "react";
+import { useState , useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   incrementQty,
@@ -8,11 +8,12 @@ import {
   selectCartItems,
   selectCartSubtotal,
   selectCartCount,
-  clearCart
+  checkoutCart
 } from "@redux/slices/cartSlice";
 import { useNavigate } from "react-router-dom";
 import Coupons from "@components/Coupons";
-import cartApi from "@api/cartApi";
+import Heading from "@utils/Heading";
+import Message from "@utils/Message";
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -25,49 +26,35 @@ export default function Cart() {
 
   const [appliedCoupon, setAppliedCoupon] = useState(null);
 
-  useEffect(() => {
-    if (!auth?.user?.id) navigate("/login");
-  }, [auth?.user, navigate]);
-
   const handleUpdateCart = async () => {
-    await dispatch(syncCart());
+    try {
+        await dispatch(syncCart());
+        alert("Cart updated successfully");
+    } catch {
+        alert("Cart update failed");
+    }
   };
 
   const handleCheckout = async () => {
-    try {
-      await dispatch(syncCart());
+        try {
+            await dispatch(
+            checkoutCart({
+                auth,
+                items,
+                subtotal,
+                discountAmount,
+                gstAmount,
+                finalTotal,
+                appliedCoupon,
+                navigate
+            })
+            ).unwrap();
 
-      const payload = {
-        user_id: auth?.user?.id,
-
-        items: items.map((i) => ({
-          product_id: i.product_id,
-          quantity: i.quantity,
-          price: Number(i.price)
-        })),
-
-        subtotal: Number(subtotal || 0),
-        discount: Number(discountAmount || 0),
-        tax: Number(gstAmount || 0),
-        total_amount: Number(finalTotal || 0),
-
-        coupon: appliedCoupon?.code || null
-      };
-
-      const response = await cartApi.checkout(payload, auth.token);
-
-      if (!response?.data) {
-        alert("Checkout failed");
-        return;
-      }
-
-      dispatch(clearCart());
-      alert("Order placed successfully");
-      navigate("/orders");
-
-    } catch (err) {
-      alert("Checkout failed");
-    }
+            alert("Order placed successfully");
+            navigate("/orders");
+        } catch (err) {
+            alert("Checkout failed");
+        }
   };
 
   const handleRemove = async (product_id) => {
@@ -110,21 +97,14 @@ export default function Cart() {
     return Number((taxableAmount + gstAmount).toFixed(2));
   }, [taxableAmount, gstAmount]);
 
-  if (!items || items.length === 0) {
-    return (
-      <div className="p-10 text-center text-xl text-lightPrimary dark:text-darkPrimary">
-        Your cart is empty.
-      </div>
-    );
-  }
+  if (!auth?.user?.id) return <Message messageText="Login to view your cart." />
+  if (!items || items.length === 0) return <Message messageText="Your cart is empty." />
 
   return (
-    <div className="px-6 py-10">
+    <div className="px-6">
       <div className="max-w-6xl mx-auto bg-lightBg dark:bg-darkBg2 p-8 rounded-xl shadow-lg">
 
-        <h1 className="text-3xl font-bold mb-6 text-lightPrimary dark:text-darkPrimary">
-          Your Cart ({count} items)
-        </h1>
+        <Heading headingText={`Your Cart (Items - ${items?.length || 0}, Quanties - ${count})`} />
 
         <div className="space-y-6">
 
